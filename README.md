@@ -49,4 +49,4 @@ vk-dating-bot/            # Корневая директория проекта
 
 ## Схема бд
 
-![img.png](img.png)
+![img_1.png](img_1.png)
