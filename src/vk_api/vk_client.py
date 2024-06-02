@@ -10,11 +10,10 @@ class VKAPI:
     Класс для взаимодействия с API ВКонтакте.
     """
     API_BASE_URL = 'https://api.vk.com/method/'
-    DEFAULT_VERSION = '5.199'
+    DEFAULT_VERSION = '5.236'
 
-    def __init__(self, token=None, user_id=None, version=None):
-        self.__token = token or input("Введите токен доступа VK: ")
-        self.__id = user_id or input("Введите ID пользователя VK: ")
+    def __init__(self, token=None, version=None):
+        self.__token = 'vk1.a.poDS01pAfYI0yWDzmFsqb8JDMzOZvRgjXA8fg2wVxDMu_H4CRDtaEGxfDNCNh9uRc26CzsW5Q8v4maC56_P99KKe_QP3Nf8L7puASE6835w6X-jLOWVdX3oGsBqROWbXeWsl6nbaISi2KBM88EDseMg3mV56bbQBJg9A4OUjbYkDXTH4Jk9S9jr41m7KSTbU'
         self.__version = version or self.DEFAULT_VERSION
         self.__params = {'access_token': self.__token, 'v': self.__version}
 
@@ -44,57 +43,107 @@ class VKAPI:
             logger.error(f"Ошибка при выполнении запроса {method}: {e}")
             return None
 
-    def get_users_info(self):
+    def _get_popular_photos(self, owner_id, count=3):
+        """
+        Получает список популярных фотографий пользователя.
+
+        :param count: Количество фотографий для получения.
+        :return: Фотографии пользователя в формате JSON.
+        """
+        params = {
+            'owner_id': owner_id,
+            'album_id': 'profile',
+            'count': count,
+            'extended': 1,
+            'sort': 'likes_desc'
+        }
+        return self._make_request("photos.get", params=params)
+
+    def _get_city_id(self, city_name):
+        """
+        Получает идентификатор города по его названию.
+
+        :param city_name: Название города.
+        :return: Идентификатор города или None, если город не найден.
+        """
+        params = {'q': city_name, 'count': 1, 'need_all': 0}
+        response = self._make_request("database.getCities", params=params)
+
+        if response and 'response' in response and 'items' in response['response']:
+            items = response['response']['items']
+            if items:
+                return items[0]['id']
+        logger.error(f"Город '{city_name}' не найден")
+        return None
+
+    def _get_user_data(self, user):
+        """
+        Формирует данные о пользователе, включая популярные фотографии.
+
+        :param user: Объект пользователя.
+        :return: Данные о пользователе в формате JSON.
+        """
+        user_data = {
+            'user_id': user['id'],
+            'user_link': f'https://vk.com/id{user["id"]}',
+            'last_name': user['last_name'],
+            'first_name': user['first_name'],
+            'photos': []
+        }
+
+        popular_photos = self._get_popular_photos(user['id'])
+
+        if popular_photos and 'response' in popular_photos and 'items' in popular_photos['response']:
+            for photo in popular_photos['response']['items']:
+                user_data['photos'].append(photo['sizes'][-1]['url'])
+
+        return user_data
+
+    def get_users_info(self, id_user):
         """
         Получает информацию о пользователе.
 
         :return: Информация о пользователе в формате JSON.
         """
-        params = {'user_ids': self.__id}
-        return self._make_request("users.get", params=params)
+        params = {'user_ids': id_user}
 
-    def get_photos(self, count=5):
-        """
-        Получает фотографии пользователя.
+        user = self._make_request("users.get", params=params)
 
-        :param count: Количество фотографий для получения.
-        :return: Фотографии пользователя в формате JSON.
-        """
-        params = {'owner_id': self.__id, 'album_id': 'profile', 'count': count, 'extended': 1}
-        return self._make_request("photos.get", params=params)
+        if user['response']:
+            user_data = self._get_user_data(user['response'][0])
+            return user_data
+        return None
 
-    def create_photo_dicts(self, photos_data):
+    def search_users(self, age_from, age_to, sex, city, offset):
         """
-        Создает список словарей с информацией о фотографиях.
+        Получает список пользователей по возрасту, полу и городу.
 
-        :param photos_data: Данные о фотографиях в формате JSON.
-        :return: Список словарей с информацией о фотографиях.
+        :param age_from: Минимальный возраст пользователя.
+        :param age_to: Максимальный возраст пользователя.
+        :param sex: Пол пользователя (1 — женский; 2 — мужской; 0 — любой).
+        :param city: Название города пользователя.
+        :param offset: Смещение относительно первой найденной записи.
+        :return: Список пользователей в формате JSON.
         """
-        if 'response' in photos_data:
-            photos_info = []
-            for photo in photos_data['response']['items']:
-                info = {
-                    'photo': photo['sizes'][-1]['url'],
-                    'type': photo['sizes'][-1]['type'],
-                    'likes': photo['likes']['count'],
-                    'date': photo['date']
-                }
-                photos_info.append(info)
-            return photos_info
-        else:
-            logger.error("Неверный формат данных при получении фотографий")
-            return None
+        params = {
+            'city': self._get_city_id(city),
+            'sex': sex,
+            'age_from': age_from,
+            'age_to': age_to,
+            'count': 1,
+            'offset': offset
+        }
 
-    def get_user_photos_info(self, count=5):
-        """
-        Получает информацию о фотографиях пользователя.
+        user = self._make_request("users.search", params=params)
 
-        :param count: Количество фотографий для получения.
-        :return: Информация о фотографиях пользователя в формате словаря.
-        """
-        photos_data = self.get_photos(count=count)
-        if photos_data:
-            logger.info("Фотографии успешно получены")
-            return self.create_photo_dicts(photos_data)
-        else:
-            return None
+        if user and 'response' in user and 'items' in user['response'] and user['response']['items']:
+            user_data = self._get_user_data(user['response']['items'][0])
+            return user_data
+        return None
+
+
+if __name__ == '__main__':
+    vk_api = VKAPI()
+
+    print(vk_api.get_users_info('438801184'))
+    # print(vk_api.search_users(age_from=18, age_to=22, sex=1, city='Москва', offset=2))
