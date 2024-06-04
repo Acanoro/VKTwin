@@ -44,7 +44,6 @@ def add_profile(vk_id: int) -> profiles:
     session.add(profile_entry)
     session.commit()
 
-    # Получаем объект из базы данных, чтобы он был привязан к сессии
     profile_entry = session.query(profiles).get(profile_entry.id)
 
     session.close()
@@ -103,7 +102,6 @@ def remove_from_blacklist(user_id: int, profile_id: int) -> None:
     """
     session, engine = conn_db()
 
-    # Найти запись в таблице BlackList
     blacklist_entry = session.query(BlackList).filter_by(user_id=user_id, profile_id=profile_id).first()
 
     session.delete(blacklist_entry)
@@ -180,7 +178,6 @@ def remove_from_favorites(user_id: int, profile_id: int) -> None:
     """
     session, engine = conn_db()
 
-    # Найти запись в таблице BlackList
     favorites_entry = session.query(favorites).filter_by(user_id=user_id, profile_id=profile_id).first()
 
     session.delete(favorites_entry)
