@@ -59,4 +59,4 @@ def conn_db(create_tables_flag: bool = False):
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
-    conn_db()
+    conn_db(create_tables_flag=True)

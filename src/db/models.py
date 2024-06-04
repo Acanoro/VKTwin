@@ -1,4 +1,4 @@
-from sqlalchemy import CheckConstraint, Column, Integer, String, Enum, ForeignKey
+from sqlalchemy import CheckConstraint, Column, Integer, String, Enum, ForeignKey, BIGINT
 
 from sqlalchemy.orm import declarative_base, relationship
 
@@ -9,7 +9,7 @@ class Users(Base):
     __tablename__ = 'users'
 
     id = Column(Integer, primary_key=True)
-    id_tg = Column(Integer, unique=True)
+    id_tg = Column(BIGINT, unique=True)
     first_name = Column(String(length=50))
     last_name = Column(String(length=50))
     city = Column(String(length=100))
@@ -24,7 +24,7 @@ class profiles(Base):
     __tablename__ = 'profiles'
 
     id = Column(Integer, primary_key=True)
-    vk_id = Column(Integer, unique=True)
+    vk_id = Column(BIGINT, unique=True)
 
     def __str__(self):
         return f'Profiles: {self.vk_id}'
@@ -49,10 +49,10 @@ class BlackList(Base):
     id = Column(Integer, primary_key=True)
 
     user_id = Column(Integer, ForeignKey('users.id'))
-    users = relationship('Users', backref='user')
+    user = relationship('Users', backref='blacklisted_users')
 
     profile_id = Column(Integer, ForeignKey('profiles.id'))
-    profiles = relationship('profiles', backref='favorite')
+    profile = relationship('profiles', backref='blacklisted_profiles')
 
     def __str__(self):
         return f'BlackList: {self.user_id} {self.profile_id}'

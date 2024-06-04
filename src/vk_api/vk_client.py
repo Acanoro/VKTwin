@@ -13,7 +13,7 @@ class VKAPI:
     DEFAULT_VERSION = '5.236'
 
     def __init__(self, token=None, version=None):
-        self.__token = 'vk1.a.poDS01pAfYI0yWDzmFsqb8JDMzOZvRgjXA8fg2wVxDMu_H4CRDtaEGxfDNCNh9uRc26CzsW5Q8v4maC56_P99KKe_QP3Nf8L7puASE6835w6X-jLOWVdX3oGsBqROWbXeWsl6nbaISi2KBM88EDseMg3mV56bbQBJg9A4OUjbYkDXTH4Jk9S9jr41m7KSTbU'
+        self.__token =
         self.__version = version or self.DEFAULT_VERSION
         self.__params = {'access_token': self.__token, 'v': self.__version}
 
@@ -131,7 +131,8 @@ class VKAPI:
             'age_from': age_from,
             'age_to': age_to,
             'count': 1,
-            'offset': offset
+            'offset': offset,
+            'has_photo': 1,
         }
 
         user = self._make_request("users.search", params=params)
