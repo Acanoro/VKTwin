@@ -1,8 +1,12 @@
 import requests
 import logging
 
+from dotenv import dotenv_values
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+secrets = dotenv_values(".env")
 
 
 class VKAPI:
@@ -13,7 +17,7 @@ class VKAPI:
     DEFAULT_VERSION = '5.236'
 
     def __init__(self, token=None, version=None):
-        self.__token =
+        self.__token = secrets['VK_TOKEN']
         self.__version = version or self.DEFAULT_VERSION
         self.__params = {'access_token': self.__token, 'v': self.__version}
 
@@ -83,21 +87,25 @@ class VKAPI:
         :param user: Объект пользователя.
         :return: Данные о пользователе в формате JSON.
         """
-        user_data = {
-            'user_id': user['id'],
-            'user_link': f'https://vk.com/id{user["id"]}',
-            'last_name': user['last_name'],
-            'first_name': user['first_name'],
-            'photos': []
-        }
+        try:
+            user_data = {
+                'user_id': user['id'],
+                'user_link': f'https://vk.com/id{user["id"]}',
+                'last_name': user['last_name'],
+                'first_name': user['first_name'],
+                'photos': []
+            }
 
-        popular_photos = self._get_popular_photos(user['id'])
+            popular_photos = self._get_popular_photos(user['id'])
 
-        if popular_photos and 'response' in popular_photos and 'items' in popular_photos['response']:
-            for photo in popular_photos['response']['items']:
-                user_data['photos'].append(photo['sizes'][-1]['url'])
+            if popular_photos and 'response' in popular_photos and 'items' in popular_photos['response']:
+                for photo in popular_photos['response']['items']:
+                    user_data['photos'].append(photo['sizes'][-1]['url'])
 
-        return user_data
+            return user_data
+        except KeyError as e:
+            logger.error(f"Отсутствует ключ в данных пользователя: {e}")
+            return None
 
     def get_users_info(self, id_user):
         """
@@ -109,10 +117,16 @@ class VKAPI:
 
         user = self._make_request("users.get", params=params)
 
-        if user['response']:
-            user_data = self._get_user_data(user['response'][0])
-            return user_data
-        return None
+        if user and 'response' in user and user['response']:
+            try:
+                user_data = self._get_user_data(user['response'][0])
+                return user_data
+            except IndexError:
+                logger.error("Пользователь с данным ID не найден")
+                return None
+        else:
+            logger.error("Ошибка при получении информации о пользователе")
+            return None
 
     def search_users(self, age_from, age_to, sex, city, offset):
         """
@@ -141,10 +155,3 @@ class VKAPI:
             user_data = self._get_user_data(user['response']['items'][0])
             return user_data
         return None
-
-
-if __name__ == '__main__':
-    vk_api = VKAPI()
-
-    print(vk_api.get_users_info('438801184'))
-    # print(vk_api.search_users(age_from=18, age_to=22, sex=1, city='Москва', offset=2))
